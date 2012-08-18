@@ -31,7 +31,7 @@ def override_config_with_command_line_options(conf, options):
         conf['GENERAL']['LISTEN_PORT'] = options['port']
 
     if options.has_key('username'):
-        conf['NTLM_AUTH']['USERNAME'] = options['username']
+        conf['NTLM_AUTH']['USER'] = options['username']
 
     if options.has_key('password'):
         conf['NTLM_AUTH']['PASSWORD'] = options['password']

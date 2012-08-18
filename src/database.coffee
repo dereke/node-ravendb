@@ -323,7 +323,11 @@ class Database
       return
 
     spawn = ChildProcess.spawn
-    ntlmaps = spawn 'python', ["#{__dirname}/../deps/ntlmaps/main.py"]
+    ntlmaps = spawn 'python', ["#{__dirname}/../deps/ntlmaps/main.py",
+                               "--domain=#{domain}",
+                               "--username=#{username}",
+                               "--password=#{password}",
+                               "--port=5555"]
 
     @ntlm = ntlmaps
 
@@ -409,7 +413,7 @@ class Database
     headers.Authorization = @authorization if @authorization?
 
     req = { uri: url, headers: headers }
-    req['proxy'] = "http://localhost:5865" if @ntlm?
+    req['proxy'] = "http://localhost:5555" if @ntlm?
     # if passing in an object,
     #   see if it's a ReadableStream; if so, pipe it,
     #   else json so it sends application/json mime type
