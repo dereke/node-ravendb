@@ -318,10 +318,18 @@ class Database
         cb(err, oauth) if cb?
 
   useNTLM: (domain, username, password) ->
+    if @ntlm?
+      console.log "already spawned ntlm process: #{@ntlm.pid}"
+      return
+
     spawn = ChildProcess.spawn
     ntlmaps = spawn 'python', ["#{__dirname}/../deps/ntlmaps/main.py"]
 
-    @ntlm = true
+    @ntlm = ntlmaps
+
+    process.on 'exit', ->
+      ntlmaps.kill 'SIGINT'
+
 
     ntlmaps.stdout.on 'data', (data) ->
       console.log "ntlmaps stdout: #{data}"
@@ -332,7 +340,7 @@ class Database
 
 
     ntlmaps.on 'exit', (code) =>
-      @ntlm = false
+      @ntlm = null
       console.error "ntlmaps exited with code #{code}" if code isnt 0
 
 
