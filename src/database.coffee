@@ -1,5 +1,7 @@
 # database.coffee
 request = require('request')
+ChildProcess = require('child_process')
+
 
 class Database
   @DOCUMENTS_BY_ENTITY_NAME_INDEX: 'Raven/DocumentsByEntityName'
@@ -315,6 +317,24 @@ class Database
         database.setAuthorization("Bearer " + oauth.body)
         cb(err, oauth) if cb?
 
+  useNTLM: (domain, username, password) ->
+    spawn = ChildProcess.spawn
+    ntlmaps = spawn 'python', ["#{__dirname}/../deps/ntlmaps/main.py"]
+
+    @ntlm = true
+
+    ntlmaps.stdout.on 'data', (data) ->
+      console.log "ntlmaps stdout: #{data}"
+
+
+    ntlmaps.stderr.on 'data', (data) ->
+      console.error "ntlmaps stderr: #{data}"
+
+
+    ntlmaps.on 'exit', (code) =>
+      @ntlm = false
+      console.error "ntlmaps exited with code #{code}" if code isnt 0
+
 
 
   # base API get calls
@@ -381,6 +401,7 @@ class Database
     headers.Authorization = @authorization if @authorization?
 
     req = { uri: url, headers: headers }
+    req['proxy'] = "http://localhost:5865" if @ntlm?
     # if passing in an object,
     #   see if it's a ReadableStream; if so, pipe it,
     #   else json so it sends application/json mime type
