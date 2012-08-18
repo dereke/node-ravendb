@@ -1,3 +1,4 @@
 node_modules
-deps/ntlmaps/*.pyc
-deps/ntlmaps/lib/*.pyc
+*.pyc
+
+
