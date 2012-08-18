@@ -1,6 +1,6 @@
 # database.coffee
 request = require('request')
-ChildProcess = require('child_process')
+spawn = require('child_process').spawn
 
 
 class Database
@@ -322,11 +322,14 @@ class Database
       console.log "already spawned ntlm process: #{@ntlm.pid}"
       return
 
-    spawn = ChildProcess.spawn
+    user_pwd = new Buffer("#{username}:#{password}").toString('base64')
+    @setAuthorization "Basic #{user_pwd}"
+    console.log user_pwd
+
     ntlmaps = spawn 'python', ["#{__dirname}/../deps/ntlmaps/main.py",
                                "--domain=#{domain}",
-                               "--username=#{username}",
-                               "--password=#{password}",
+                               # "--username=#{username}",
+                               "--password=passed_in_auth_header",
                                "--port=5555"]
 
     @ntlm = ntlmaps
