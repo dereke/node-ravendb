@@ -45,6 +45,7 @@ def read_config(fname):
 
 #-------------------------------------------------------------------------------------------
 # Thanks Janek Schwarz <j.schwarz@i-change.de> for this addition.
+# Tony Heupel --- not calling this -- moved to command_line.py
 
 def findConfigFileNameInArgv(argv, configFileDir=''):
     """ Resolves configuration file. Resolution goes as follows:
