@@ -29,7 +29,6 @@ def parse_command_line(cmdline):
                                  ['config=', 'domain=', 'username=', 'password=',
                                  'port='])
 
-    print cmdline
     options = {}
     for opt in opts:
         option, value = opt

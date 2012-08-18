@@ -318,38 +318,41 @@ class Database
         cb(err, oauth) if cb?
 
   useNTLM: (domain, username, password) ->
-    if @ntlm?
-      console.log "already spawned ntlm process: #{@ntlm.pid}"
-      return
 
-    user_pwd = new Buffer("#{username}:#{password}").toString('base64')
-    @setAuthorization "Basic #{user_pwd}"
-    console.log user_pwd
+    try
+      user_pwd = new Buffer("#{username}:#{password}").toString('base64')
+      @setAuthorization "Basic #{user_pwd}"
 
-    ntlmaps = spawn 'python', ["#{__dirname}/../deps/ntlmaps/main.py",
-                               "--domain=#{domain}",
-                               # "--username=#{username}",
-                               "--password=passed_in_auth_header",
-                               "--port=5555"]
+      if @ntlm?
+        return false
 
-    @ntlm = ntlmaps
+      ntlmaps = spawn 'python', ["#{__dirname}/../deps/ntlmaps/main.py",
+                                 "--domain=#{domain}",
+                                 # "--username=#{username}",
+                                 # "--password=#{password}",
+                                 "--port=5555"]
 
-    process.on 'exit', ->
-      ntlmaps.kill 'SIGINT'
+      @ntlm = ntlmaps
 
-
-    ntlmaps.stdout.on 'data', (data) ->
-      console.log "ntlmaps stdout: #{data}"
+      process.on 'exit', ->
+        ntlmaps.kill 'SIGINT'
 
 
-    ntlmaps.stderr.on 'data', (data) ->
-      console.error "ntlmaps stderr: #{data}"
+      ntlmaps.stdout.on 'data', (data) ->
+        console.log "ntlmaps stdout: #{data}"
 
 
-    ntlmaps.on 'exit', (code) =>
-      @ntlm = null
-      console.error "ntlmaps exited with code #{code}" if code isnt 0
+      ntlmaps.stderr.on 'data', (data) ->
+        console.error "ntlmaps stderr: #{data}"
 
+
+      ntlmaps.on 'exit', (code) =>
+        @ntlm = null
+        console.error "ntlmaps exited with code #{code}" if code isnt 0
+
+      return true
+    catch error
+      return false
 
 
   # base API get calls
