@@ -1,6 +1,7 @@
 # database.coffee
 request = require('request')
 spawn = require('child_process').spawn
+portchecker = require('portchecker')
 
 
 class Database
@@ -317,42 +318,48 @@ class Database
         database.setAuthorization("Bearer " + oauth.body)
         cb(err, oauth) if cb?
 
-  useNTLM: (domain, username, password) ->
+  useNTLM: (domain, username, password, cb) ->
+    getPort = (cb) ->
+      portchecker.getFirstAvailable 5000, 6000, 'localhost', (port, host) ->
+        cb(port)
 
-    try
-      user_pwd = new Buffer("#{username}:#{password}").toString('base64')
-      @setAuthorization "Basic #{user_pwd}"
+    user_pwd = new Buffer("#{username}:#{password}").toString('base64')
+    @setAuthorization "Basic #{user_pwd}"
 
-      if @ntlm?
-        return false
-
-      ntlmaps = spawn 'python', ["#{__dirname}/../deps/ntlmaps/main.py",
-                                 "--domain=#{domain}",
-                                 # "--username=#{username}",
-                                 # "--password=#{password}",
-                                 "--port=5555"]
-
-      @ntlm = ntlmaps
-
-      process.on 'exit', ->
-        ntlmaps.kill 'SIGINT'
-
-
-      ntlmaps.stdout.on 'data', (data) ->
-        console.log "ntlmaps stdout: #{data}"
-
-
-      ntlmaps.stderr.on 'data', (data) ->
-        console.error "ntlmaps stderr: #{data}"
-
-
-      ntlmaps.on 'exit', (code) =>
-        @ntlm = null
-        console.error "ntlmaps exited with code #{code}" if code isnt 0
-
-      return true
-    catch error
+    if @ntlm?
       return false
+
+    getPort (port) =>
+      try
+        ntlmaps = spawn 'python', ["#{__dirname}/../deps/ntlmaps/main.py",
+                                   "--domain=#{domain}",
+                                   # "--username=#{username}",
+                                   # "--password=#{password}",
+                                   "--port=#{port}"]
+
+        @ntlm = ntlmaps
+        @ntlm.port = port
+
+        process.on 'exit', ->
+          ntlmaps.kill 'SIGINT'
+
+
+        ntlmaps.stdout.on 'data', (data) ->
+          console.log "ntlmaps stdout: #{data}"
+
+
+        ntlmaps.stderr.on 'data', (data) ->
+          console.error "ntlmaps stderr: #{data}"
+
+
+        ntlmaps.on 'exit', (code) =>
+          @ntlm = null
+          console.error "ntlmaps exited with code #{code}" if code isnt 0
+
+        cb(true) if cb?
+      catch error
+        cb(false) if cb?
+
 
 
   # base API get calls
@@ -419,7 +426,7 @@ class Database
     headers.Authorization = @authorization if @authorization?
 
     req = { uri: url, headers: headers }
-    req['proxy'] = "http://localhost:5555" if @ntlm?
+    req['proxy'] = "http://localhost:#{@ntlm.port}" if @ntlm?
     # if passing in an object,
     #   see if it's a ReadableStream; if so, pipe it,
     #   else json so it sends application/json mime type
